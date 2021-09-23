@@ -11,6 +11,7 @@ def parse_string(data, string_offset):
 
 
 class Chunk(object):
+    """Base class for all chunks."""
     chunk_format = '<IH'
 
     def __init__(self, data, data_offset=0):
@@ -18,6 +19,8 @@ class Chunk(object):
         (self.chunk_size, self.chunk_type) = chunk_struct.unpack_from(data, data_offset)
 
 class OldPaleteChunk_0x0004(Chunk):
+    chunk_id = 0x0004
+
     def __init__(self, data, data_offset=0):
         Chunk.__init__(self, data, data_offset)
 
@@ -40,6 +43,8 @@ class OldPaleteChunk_0x0004(Chunk):
             self.packets.append(packet)
 
 class OldPaleteChunk_0x0011(Chunk):
+    chunk_id = 0x0011
+
     def __init__(self, data, data_offset=0):
         Chunk.__init__(self, data, data_offset)
 
@@ -61,6 +66,7 @@ class OldPaleteChunk_0x0011(Chunk):
             self.packets.append(packet)
 
 class LayerChunk(Chunk):
+    chunk_id = 0x2004
     layer_format = '<HHHHHHB3x'
 
     def __init__(self, data, layer_index, data_offset=0):
@@ -96,6 +102,7 @@ class LayerGroupChunk(LayerChunk):
 
 
 class CelChunk(Chunk):
+    chunk_id = 0x2005
     cel_format = '<HhhBH7x'
     cel_type_format = '<HH'
 
@@ -133,7 +140,9 @@ class CelChunk(Chunk):
             self.data['data'] = zlib.decompress(data[start_range:end_range])
 
 class CelExtraChunk(Chunk):
+    chunk_id = 0x2006
     celextra_format = '<LLLLL16x'
+
     def __init__(self, data, data_offset=0):
         Chunk.__init__(self, data, data_offset)
         cel_struct = Struct(CelExtraChunk.celextra_format)
@@ -146,6 +155,7 @@ class CelExtraChunk(Chunk):
         ) = cel_struct.unpack_from(data, data_offset + 6)
 
 class MaskChunk(Chunk):
+    chunk_id = 0x2016
     mask_format = '<hhHH8x'
 
     def __init__(self, data, data_offset=0):
@@ -166,9 +176,12 @@ class MaskChunk(Chunk):
         self.bitmap = data[start_range:start_range:end_range]
 
 class PathChunk(Chunk):
+    """According to the specs, this chunk is never used."""
+    chunk_id = 0x2017
     pass
 
 class FrameTagsChunk(Chunk):
+    chunk_id = 0x2018
     frametag_head_format = '<H8x'
     frametag_format = '<HHB8x3Bx'
 
@@ -198,6 +211,7 @@ class FrameTagsChunk(Chunk):
             tag_offset += string_size
 
 class PaletteChunk(Chunk):
+    chunk_id = 0x2019
     palette_format = '<III8x'
 
     def __init__(self, data, data_offset=0):
@@ -229,6 +243,7 @@ class PaletteChunk(Chunk):
             self.colors.append(color)
 
 class UserDataChunk(Chunk):
+    chunk_id = 0x2020
     def __init__(self, data, data_offset=0):
         Chunk.__init__(self, data, data_offset)
         userdata_offset = data_offset + 6
@@ -246,6 +261,7 @@ class UserDataChunk(Chunk):
             ) = Struct('<BBBB').unpack_from(data, userdata_offset)
 
 class SliceChunk(Chunk):
+    chunk_id = 0x2022
     slice_chunk_format = '<III'
     slice_format = '<IiiII'
     slice_key_format = '<IiiII'
