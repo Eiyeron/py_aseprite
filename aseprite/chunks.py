@@ -217,8 +217,8 @@ class PaletteChunk(Chunk):
             (
                 color['flags'],
                 color['red'],
-                color['blue'],
                 color['green'],
+                color['blue'],
                 color['alpha']
             ) = color_struct.unpack_from(data, color_offset)
             color_offset += color_struct.size
