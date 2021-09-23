@@ -133,7 +133,7 @@ class CelChunk(Chunk):
             self.data['data'] = zlib.decompress(data[start_range:end_range])
 
 class CelExtraChunk(Chunk):
-    celextra_format = '<HLLLL16x'
+    celextra_format = '<LLLLL16x'
     def __init__(self, data, data_offset=0):
         Chunk.__init__(self, data, data_offset)
         cel_struct = Struct(CelExtraChunk.celextra_format)
