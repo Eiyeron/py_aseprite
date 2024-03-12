@@ -1,0 +1,16 @@
+[project]
+name = "py-aseprite"
+version = "0.0.2"
+authors = [{name="Florian Dormont"}]
+description = "Aseprite file loader module"
+requires-python = ">= 3.4"
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/Eiyeron/py_aseprite"
+Issues = "https://github.com/Eiyeron/py_aseprite/issues"

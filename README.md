@@ -6,18 +6,23 @@ extracting cells, palettes and the other data the file contains.
 
 This is a library designed with read-only operations in mind as it was
 originally forked out from an automatic file-to-source-code conversion tool.
-There isn't any plans to add converting a picture format into this an Aseprite
-one.
+There isn't any plans to add conversion from 
 
-Aseprite's [file format](https://github.com/aseprite/aseprite/blob/master/docs/ase-file-specs.md)
+Aseprite's [file format][specs]
 is quite straightforward. It's mainly composed of chunks that have a type
 identifier, allowing parsing them case by case.
 
+## Notice
 
-# What could be done
+This is a project that was mostly designed for my own uses, thus support of this library
+for other projects isn't guaranteed. I'm slowly preparing the project to make it
+releasable but it's not my main objective for now. Here be dragons.
+
+
+# What could be done 
 
 - Support linked cels. Currently, there is stored info on a cel to determine
-if it's a linked cel and which frame the link goes to. There is nothing to fetch
+    if it's a linked cel and which frame the link goes to. There is nothing to fetch
 the data from the cel link origin though.
 - Define inner structures instead of using dictionaries
 - Assume they'll only be a CelChunk per frame and link it when possible to the FrameChunk.
@@ -33,6 +38,8 @@ one should be added to show how to use the library.
 extent of features the format offers. Unit testing would be a good way to make
 sureeverything is and will stay in place.
 - Tilemap chunk and data support.
+- Either wrap the existing classes in an optional class easier to manipulate or rewrite
+the parser.
 
 
 # How to use the library
@@ -53,13 +60,11 @@ layers through the layer group hierarchy.
 
 ## Accessing pixels
 
-Following the
-[specs](https://github.com/aseprite/aseprite/blob/master/docs/ase-file-specs.md),
-each layer in a frame owns their own chunks which one of them may be a CelChunk.
-This holds the data of a layer at a specific frame. For the needs of the
-library, the data is already uncompressed. `CelChunk.data` is always a 1D array,
-so using indices this this form `[y * width + x]` is currently highly
-recommanded. Note that in indexed mode the data is not a dict but only an index
+Following the [specs], each layer in a frame owns their own chunks which one of
+them may be a CelChunk. This holds the data of a layer at a specific frame. For
+the needs of the library, the data is uncompressed on load. `CelChunk.data` is
+always a 1D array, so using indices this this form `[y * width + x]` is currently
+highly recommanded. Note that in indexed mode the data is not a dict but only an index
 relating to the picture's palette.
 
 
@@ -149,3 +154,4 @@ def merge_frame_cels(picture, num_frame, mask_index):
     return frame_output
 ```
 
+[specs]: (https://github.com/aseprite/aseprite/blob/master/docs/ase-file-specs.md)

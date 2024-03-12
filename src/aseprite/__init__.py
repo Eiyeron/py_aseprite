@@ -16,7 +16,6 @@ from .chunks import (
     SliceChunk
 )
 
-
 class AsepriteFile(object):
     def __init__(self, data):
         self.header, self.frames = AsepriteFile.parse_data(data)
