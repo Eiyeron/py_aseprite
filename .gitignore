@@ -2,5 +2,6 @@ __pycache__
 # Personal project
 main.py
 writer.py
+*.ipynb
 # IDEs
 .vscode

@@ -7,6 +7,7 @@ from .chunks import (
     LayerGroupChunk,
     CelChunk,
     CelExtraChunk,
+    ColorProfileChunk,
     MaskChunk,
     FrameTagsChunk,
     PathChunk,
@@ -52,6 +53,7 @@ class AsepriteFile(object):
             LayerChunk,
             CelChunk,
             CelExtraChunk,
+            ColorProfileChunk,
             MaskChunk,
             FrameTagsChunk,
             PathChunk,
@@ -74,14 +76,14 @@ class AsepriteFile(object):
 
                 if not found_chunk_type:
                     print("Skipped 0x{:04x}".format(chunk.chunk_type))
-
                 elif found_chunk_type == LayerChunk:
                     layer = LayerChunk(data, layer_index, data_offset)
-                    if layer.layer_type & 1 == 1:
+                    if layer.layer_type == 0:
+                        frame.chunks.append(layer)
+                    elif layer.layer_type == 1:
                         frame.chunks.append(LayerGroupChunk(layer))
                     else:
-                        frame.chunks.append(layer)
-
+                        print("Skipped layer chunk with unsupported layer type 0x{:04x}".format(chunk_type))
                         layer_index += 1
                 else:
                     frame.chunks.append(found_chunk_type(data, data_offset))

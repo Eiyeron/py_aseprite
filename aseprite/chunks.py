@@ -154,6 +154,34 @@ class CelExtraChunk(Chunk):
             self.cel_height
         ) = cel_struct.unpack_from(data, data_offset + 6)
 
+
+class ColorProfileChunk(Chunk):
+    chunk_id = 0x2007
+    color_profile_format = "<HHH8x"
+    icc_profile_format = "<I"
+
+    def __init__(self, data, data_offset=0):
+        Chunk.__init__(self, data, data_offset)
+        color_profile_struct = Struct(ColorProfileChunk.color_profile_format)
+        color_profile_offset = data_offset + 6
+
+        icc_profile_length_struct = Struct(ColorProfileChunk.icc_profile_format)
+        icc_profile_offset = color_profile_offset + color_profile_struct.size
+        icc_data_offset = icc_profile_offset + icc_profile_length_struct.size
+        (
+            self.use_color_profile,
+            self.use_fixed_gamma,
+            self.fixed_gamma
+        ) = color_profile_struct.unpack_from(data, color_profile_offset)
+
+        # Read ICC data
+        if self.color_profile_format == 2:
+            icc_data_length = icc_profile_length_struct.unpack_from(data, icc_profile_offset)
+            self.icc_profile_data = data[icc_data_offset:icc_data_offset + icc_data_length]
+        else:
+            self.icc_profile_data = []
+        
+
 class MaskChunk(Chunk):
     chunk_id = 0x2016
     mask_format = '<hhHH8x'
@@ -259,6 +287,8 @@ class UserDataChunk(Chunk):
                 self.blue,
                 self.alpha
             ) = Struct('<BBBB').unpack_from(data, userdata_offset)
+        if self.flags & 4 != 0:
+            print("Property map not yet supported, skipped.")
 
 class SliceChunk(Chunk):
     chunk_id = 0x2022
