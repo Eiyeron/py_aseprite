@@ -82,7 +82,7 @@ class AsepriteFile(object):
                     elif layer.layer_type == 1:
                         frame.chunks.append(LayerGroupChunk(layer))
                     else:
-                        print("Skipped layer chunk with unsupported layer type 0x{:04x}".format(chunk_type))
+                        print("Skipped layer chunk with unsupported layer type 0x{:04x}".format(layer.layer_type))
                         layer_index += 1
                 else:
                     frame.chunks.append(found_chunk_type(data, data_offset))
