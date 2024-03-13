@@ -13,7 +13,8 @@ from .chunks import (
     PathChunk,
     PaletteChunk,
     UserDataChunk,
-    SliceChunk
+    SliceChunk,
+    TilesetChunk
 )
 
 class AsepriteFile(object):
@@ -58,7 +59,8 @@ class AsepriteFile(object):
             PathChunk,
             PaletteChunk,
             UserDataChunk,
-            SliceChunk
+            SliceChunk,
+            TilesetChunk
         )
         for i in range(head.num_frames):
             frame = Frame(data, data_offset)
@@ -67,6 +69,7 @@ class AsepriteFile(object):
             data_offset += frame.frame_size
             for c in range(frame.num_chunks):
                 chunk = Chunk(data, data_offset)
+                print(vars(chunk))
                 found_chunk_type = None
                 for chunk_type in supported_chunks:
                     if chunk_type.chunk_id == chunk.chunk_type:

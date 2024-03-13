@@ -342,3 +342,55 @@ class SliceChunk(Chunk):
                 ) = slice_bit_2_struct.unpack_from(data, slice_offset)
                 slice_offset += slice_bit_2_struct.size
             self.slices.append(slice)
+
+
+class TilesetChunk(Chunk):
+    chunk_id = 0x2023
+    tileset_chunk_format = (
+        '<I' # Tileset ID
+        + 'I' # Tileset flags
+        + 'I' # Number of tiles
+        + 'H' # Tile width
+        + 'H' # Tile height
+        + 'h' # Base index (index of the first tile to show in the UI)
+        + '14x'
+    )
+    tileset_chunk_external_id_format = (
+        '<I' # External file ID (see External Files chunk)
+        + 'I' # Tileset ID "in the external file"
+    )
+    tileset_chunk_compressed_tiles_format = (
+        '<I' # Data length
+    )
+
+    def __init__(self, data, data_offset=0):
+        slice_offset = data_offset + 6
+        tileset_chunk_struct = Struct(TilesetChunk.tileset_chunk_format)
+        tileset_name_offset = slice_offset + tileset_chunk_struct.size
+        tileset_external_id_struct = Struct(TilesetChunk.tileset_chunk_external_id_format)
+        tileset_compressed_data_struct = Struct(TilesetChunk.tileset_chunk_compressed_tiles_format)
+        (
+            self.tileset_id,
+            self.tileset_flags,
+            num_tiles,
+            self.tile_width,
+            self.tile_height,
+            self.base_index
+        ) = tileset_chunk_struct.unpack_from(data, slice_offset)
+        string_data_length, self.layer_name = parse_string(data, tileset_name_offset)
+
+        additional_data_offset = tileset_name_offset + string_data_length
+
+        if self.tileset_flags & 1 != 0:
+            (
+                self.external_file_id,
+                self.external_tileset_id
+            ) = tileset_external_id_struct.unpack_from(data, additional_data_offset)
+            additional_data_offset += tileset_external_id_struct.size
+
+        if self.tileset_flags & 2 != 0:
+            (compressed_data_length,) = tileset_compressed_data_struct.unpack_from(data, additional_data_offset)
+            compressed_data_start = additional_data_offset + tileset_compressed_data_struct.size
+            compressed_data_end = compressed_data_start + compressed_data_length
+            compressed_data = data[compressed_data_start:compressed_data_end]
+            self.tileset_image = zlib.decompress(compressed_data)
