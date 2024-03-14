@@ -37,7 +37,6 @@ one should be added to show how to use the library.
 - Unit testing. I haven't found a canoncial set of files to test the whole
 extent of features the format offers. Unit testing would be a good way to make
 sureeverything is and will stay in place.
-- Tilemap chunk and data support.
 - Either wrap the existing classes in an optional class easier to manipulate or rewrite
 the parser.
 

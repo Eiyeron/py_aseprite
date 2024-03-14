@@ -28,6 +28,7 @@ class Header(object):
         + "H" # Grid height (0: no grid)
         + "84x" # Future proofing
     )
+    # Note I'm not sure if the combinations of all bitmasks must fill all the bits counted in the tile ID.
     header_size = 128
 
     def __init__(self, data, data_offset = 0):

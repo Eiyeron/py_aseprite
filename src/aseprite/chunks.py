@@ -1,3 +1,4 @@
+import struct
 from struct import Struct
 import zlib
 import math
@@ -17,6 +18,7 @@ class Chunk(object):
     def __init__(self, data, data_offset=0):
         chunk_struct = Struct(Chunk.chunk_format)
         (self.chunk_size, self.chunk_type) = chunk_struct.unpack_from(data, data_offset)
+
 
 class OldPaleteChunk_0x0004(Chunk):
     chunk_id = 0x0004
@@ -42,6 +44,7 @@ class OldPaleteChunk_0x0004(Chunk):
 
             self.packets.append(packet)
 
+
 class OldPaleteChunk_0x0011(Chunk):
     chunk_id = 0x0011
 
@@ -65,9 +68,20 @@ class OldPaleteChunk_0x0011(Chunk):
 
             self.packets.append(packet)
 
+
 class LayerChunk(Chunk):
     chunk_id = 0x2004
-    layer_format = '<HHHHHHB3x'
+    layer_format = (
+        '<H' # Flags
+        + 'H' # Layer type
+        + 'H' # Layer child level
+        + 'H' # Default layer width (ignored)
+        + 'H' # Default layer height (ignored)
+        + 'H' # Blend mode
+        + 'B' # Opacity (only valid if the header's flag is set)
+        + '3x' # Padding
+    )
+    layer_tileset_index_format = '<I'
 
     def __init__(self, data, layer_index, data_offset=0):
         Chunk.__init__(self, data, data_offset)
@@ -81,8 +95,13 @@ class LayerChunk(Chunk):
             self.blend_mode,
             self.opacity
         ) = layer_struct.unpack_from(data, data_offset + 6)
-        _, self.name = parse_string(data, data_offset + 6 + layer_struct.size)
+        name_data_length, self.name = parse_string(data, data_offset + 6 + layer_struct.size)
         self.layer_index = layer_index
+
+        if self.layer_type == 2:
+            layer_tileset_data_offset =  data_offset + 6 + layer_struct.size + name_data_length
+            layer_tileset_struct = Struct(LayerChunk.layer_tileset_index_format)
+            (self.tileset_index, ) = layer_tileset_struct.unpack_from(data, layer_tileset_data_offset)
 
 
 class LayerGroupChunk(LayerChunk):
@@ -100,11 +119,20 @@ class LayerGroupChunk(LayerChunk):
         self.children = []
 
 
-
 class CelChunk(Chunk):
     chunk_id = 0x2005
     cel_format = '<HhhBH7x'
     cel_type_format = '<HH'
+    cel_tilemap_format = (
+        '<H' # Width in tiles
+        'H' # height in tiles
+        'H' # Bits per tile (hardcoded as 32 bits per tile for now)
+        'I' # Bitmask for tile ID (harcoded as 0x1fffffff for now)
+        'I' # Bitmask for X flip
+        'I' # Bitmask for Y flip
+        'I' # Bitmask for diagonal flip ("swap X/y axis")
+        '10x' # Reserved
+    )
 
     def __init__(self, data, data_offset=0):
         Chunk.__init__(self, data, data_offset)
@@ -116,28 +144,63 @@ class CelChunk(Chunk):
             self.opacity,
             self.cel_type
         ) = cel_struct.unpack_from(data, data_offset + 6)
-        cel_offset = data_offset + cel_struct.size + 6
-        cel_struct = Struct(CelChunk.cel_type_format)
+        cel_end_offset = data_offset + cel_struct.size + 6
+        self.data = {}
         if self.cel_type == 0:
-            self.data = {}
+            cel_type_struct = Struct(CelChunk.cel_type_format)
             (
                 self.data['width'],
                 self.data['height']
-            ) = cel_struct.unpack_from(data, cel_offset)
-            start_range = cel_offset + cel_struct.size
+            ) = cel_type_struct.unpack_from(data, cel_end_offset)
+            start_range = cel_end_offset + cel_struct.size
             end_range = data_offset + self.chunk_size
             self.data['data'] = data[start_range:end_range]
         elif self.cel_type == 1:
-            self.data = {'link': Struct('<H').unpack_from(data, cel_offset)}
+            self.data = {'link': Struct('<H').unpack_from(data, cel_end_offset)}
         elif self.cel_type == 2:
-            self.data = {}
             (
                 self.data['width'],
                 self.data['height']
-            ) = cel_struct.unpack_from(data, cel_offset)
-            start_range = cel_offset + cel_struct.size
+            ) = cel_struct.unpack_from(data, cel_end_offset)
+            start_range = cel_end_offset + cel_struct.size
             end_range = data_offset + self.chunk_size
             self.data['data'] = zlib.decompress(data[start_range:end_range])
+        elif self.cel_type == 3:
+            cel_tilemap_struct = Struct(CelChunk.cel_tilemap_format)
+            cel_tilemap_offset = cel_end_offset
+            (
+                self.data['width'],
+                self.data['height'],
+                self.data['bits_per_tile'],
+                self.data['tile_id_bitmask'],
+                self.data['flip_x_bitmask'],
+                self.data['flip_y_bitmask'],
+                self.data['flip_diagonal_bitmask'],
+            ) = cel_tilemap_struct.unpack_from(data, cel_tilemap_offset)
+            start_range = cel_tilemap_offset + cel_tilemap_struct.size
+            end_range = data_offset + self.chunk_size
+            self.data['data'] = zlib.decompress(data[start_range:end_range])
+            # Is there always width * height tiles or can the tile array be smaller than that.
+        else:
+            print("Unsupported Cel chunk type {:04x}. Skipping.".format(self.cel_type))
+
+    def unpack_tiles(self):
+        """Basic helper to conver the raw data to an array containing tile ids for common tile id bit sizes."""
+        # I might move that in a wrapper class to split the raw data loading from parsing.
+        if self.cel_type != 2:
+            return None
+        tiles = []
+        # Not really DRY, but it's not really at a good enough version.
+        if self.data['bits_per_tile'] == 32:
+            num_loaded_tiles = len(self.data['data']) // 4
+            return struct.unpack('<' + num_loaded_tiles * 'I', self.data['data'])
+        if self.data['bits_per_tile'] == 16:
+            num_loaded_tiles = len(self.data['data']) // 2
+            return struct.unpack('<' + num_loaded_tiles * 'H', self.data['data'])
+        if self.data['bits_per_tile'] == 8:
+            num_loaded_tiles = len(self.data['data']) // 1
+            return struct.unpack('<' + num_loaded_tiles * 'B', self.data['data'])
+        return None
 
 class CelExtraChunk(Chunk):
     chunk_id = 0x2006
