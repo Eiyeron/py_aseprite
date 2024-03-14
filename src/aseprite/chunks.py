@@ -243,9 +243,12 @@ class ColorProfileChunk(Chunk):
             self.icc_profile_data = data[icc_data_offset:icc_data_offset + icc_data_length]
         else:
             self.icc_profile_data = []
-        
+
+
+# TODO External File Chunk (0x2008)
 
 class MaskChunk(Chunk):
+    """According to the specs, this chunk is deprecated."""
     chunk_id = 0x2016
     mask_format = '<hhHH8x'
 
@@ -271,6 +274,7 @@ class PathChunk(Chunk):
     chunk_id = 0x2017
     pass
 
+# TODO Update the chunk format, it's currently missing data.
 class FrameTagsChunk(Chunk):
     chunk_id = 0x2018
     frametag_head_format = '<H8x'
@@ -333,6 +337,7 @@ class PaletteChunk(Chunk):
 
             self.colors.append(color)
 
+# TODO Update this chunk, it's missing properties and the property map.
 class UserDataChunk(Chunk):
     chunk_id = 0x2020
     def __init__(self, data, data_offset=0):
@@ -358,8 +363,8 @@ class SliceChunk(Chunk):
     slice_chunk_format = '<III'
     slice_format = '<IiiII'
     slice_key_format = '<IiiII'
-    slice_bit_1_format = '<iiII'
-    slice_bit_2_format = '<ii'
+    slice_center_format = '<iiII'
+    slice_pivot_format = '<ii'
 
 
     def __init__(self, data, data_offset=0):
@@ -387,23 +392,23 @@ class SliceChunk(Chunk):
             ) = slice_struct.unpack_from(data, slice_offset)
             slice_offset += slice_struct.size
             if self.flags & 1 != 0:
-                slice_bit_1_struct = Struct(SliceChunk.slice_bit_1_format)
+                slice_center_struct = Struct(SliceChunk.slice_center_format)
                 slice['center'] = {}
                 (
                     slice['center']['x'],
                     slice['center']['y'],
                     slice['center']['width'],
                     slice['center']['height']
-                ) = slice_bit_1_struct.unpack_from(data, slice_offset)
-                slice_offset += slice_bit_1_struct.size
+                ) = slice_center_struct.unpack_from(data, slice_offset)
+                slice_offset += slice_center_struct.size
             if self.flags & 2 != 0:
-                slice_bit_2_struct = Struct(SliceChunk.slice_bit_2_format)
+                slice_pivot_struct = Struct(SliceChunk.slice_pivot_format)
                 slice['pivot'] = {}
                 (
                     slice['pivot']['x'],
                     slice['pivot']['y'],
-                ) = slice_bit_2_struct.unpack_from(data, slice_offset)
-                slice_offset += slice_bit_2_struct.size
+                ) = slice_pivot_struct.unpack_from(data, slice_offset)
+                slice_offset += slice_pivot_struct.size
             self.slices.append(slice)
 
 
