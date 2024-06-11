@@ -123,6 +123,7 @@ class CelChunk(Chunk):
     chunk_id = 0x2005
     cel_format = '<HhhBH7x'
     cel_type_format = '<HH'
+    cel_compressed_image_format = '<HH'
     cel_tilemap_format = (
         '<H' # Width in tiles
         'H' # height in tiles
@@ -146,6 +147,7 @@ class CelChunk(Chunk):
         ) = cel_struct.unpack_from(data, data_offset + 6)
         cel_end_offset = data_offset + cel_struct.size + 6
         self.data = {}
+        # Raw Image Data (0)
         if self.cel_type == 0:
             cel_type_struct = Struct(CelChunk.cel_type_format)
             (
@@ -155,16 +157,20 @@ class CelChunk(Chunk):
             start_range = cel_end_offset + cel_struct.size
             end_range = data_offset + self.chunk_size
             self.data['data'] = data[start_range:end_range]
+        # Linked Cel (1)
         elif self.cel_type == 1:
             self.data = {'link': Struct('<H').unpack_from(data, cel_end_offset)}
+        # Compressed Image (2)
         elif self.cel_type == 2:
+            cel_image_struct = Struct(CelChunk.cel_compressed_image_format)
             (
                 self.data['width'],
                 self.data['height']
-            ) = cel_struct.unpack_from(data, cel_end_offset)
-            start_range = cel_end_offset + cel_struct.size
+            ) = cel_image_struct.unpack_from(data, cel_end_offset)
+            start_range = cel_end_offset + cel_image_struct.size
             end_range = data_offset + self.chunk_size
             self.data['data'] = zlib.decompress(data[start_range:end_range])
+        # Compressed Tilemap (3)
         elif self.cel_type == 3:
             cel_tilemap_struct = Struct(CelChunk.cel_tilemap_format)
             cel_tilemap_offset = cel_end_offset
